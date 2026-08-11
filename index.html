@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jacobus Barnard - Web Developer | Mango Mafia</title>
+<meta name="description" content="Mango Mafia is a projector-first classroom Mafia game for ESL teachers, where the app is the moderator. Case study, screenshots and the engineering behind a game whose screen every player can see.">
+<link rel="icon" href="assets/mafia-mango.png">
+<meta property="og:title" content="Mango Mafia - a classroom game where the app is the moderator">
+<meta property="og:description" content="A projector-first Mafia game for ESL classrooms. Built by one developer: game engine, art pipeline, 459 tests, and a palette rebuilt after a real projector broke it.">
+<meta property="og:image" content="assets/home-hero.webp">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;800;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* The app's own palette. Nothing here is black and nothing is white - that is
+     a rule the product is built on, and the page it advertises keeps it. */
+  --bg:#1a212a; --stage:#202832; --card:#28313d; --line:#3c4757;
+  --mango:#f5a524; --mango-light:#ffd45e; --mango-deep:#e8761b;
+  --mango-soft:rgba(245,165,36,.12);
+  --ink:#f2efe9; --muted:#9aa7b8;
+  --premium:#c48ce8; --leaf:#4a9d5f; --night:#38434f; --day:#d6cfc2;
+  --out:#e2727f;
+  --lift:0 14px 32px rgba(0,0,0,.42);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;line-height:1.65;font-size:17px;overflow-x:hidden}
+a{color:var(--mango)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--mango);outline-offset:3px;border-radius:4px}
+img{max-width:100%}
+.wrap{max-width:1040px;margin:0 auto;padding:0 22px}
+h2{font-family:Poppins,sans-serif;font-weight:800;font-size:clamp(1.6rem,3.6vw,2.35rem);line-height:1.2}
+h3{font-family:Poppins,sans-serif;font-weight:700;font-size:1.05rem}
+section{padding:86px 0}
+section.alt{background:var(--stage);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+p{max-width:68ch}
+.muted{color:var(--muted)}
+
+/* ---------- shared bits ---------- */
+.pill{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--mango);background:var(--mango-soft);border:1px solid rgba(245,165,36,.32);border-radius:999px;padding:7px 16px}
+.section-label{font-family:'JetBrains Mono',monospace;font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;color:var(--mango);margin-bottom:10px}
+.section-head{margin-bottom:42px}
+.section-intro{color:var(--muted);margin-top:14px;max-width:70ch}
+.btn{display:inline-block;font-family:Poppins,sans-serif;font-weight:600;font-size:.92rem;text-decoration:none;
+  border-radius:12px;padding:13px 24px;border:1px solid var(--line);color:var(--ink);transition:all .25s ease}
+.btn.primary{background:var(--mango);color:#20180a;border-color:transparent;box-shadow:0 8px 22px rgba(245,165,36,.24)}
+.btn.primary:hover{transform:translateY(-3px);background:var(--mango-light);box-shadow:0 14px 30px rgba(245,165,36,.38)}
+.btn:not(.primary):hover{transform:translateY(-3px);border-color:var(--mango);background:var(--mango-soft)}
+.cta-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:32px}
+
+/* ---------- sticky nav ---------- */
+nav.topnav{position:sticky;top:0;z-index:1000;background:rgba(26,33,42,.88);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line);padding:15px 0}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.logo{font-family:Poppins,sans-serif;font-weight:900;font-size:1.05rem;letter-spacing:.02em;text-decoration:none;color:var(--ink)}
+.logo span{color:var(--mango)}
+.navlinks a{color:var(--muted);text-decoration:none;font-size:.88rem;margin-left:20px;transition:color .2s ease}
+.navlinks a:hover{color:var(--mango)}
+@media(max-width:620px){.navlinks a{margin:0 12px 0 0;font-size:.82rem}}
+
+/* ---------- hero ---------- */
+.hero{padding:80px 25px 120px;position:relative;overflow:hidden;border-bottom:1px solid var(--line);
+  background:
+    radial-gradient(circle at 18% 30%,rgba(245,165,36,.13) 0%,transparent 42%),
+    radial-gradient(circle at bottom right,rgba(196,140,232,.10) 0%,transparent 45%),
+    linear-gradient(140deg,#232c37,#1c242e 60%,#1a212a);}
+.hero-inner{max-width:1040px;margin:0 auto;display:grid;grid-template-columns:.85fr 1.15fr;gap:48px;align-items:center;position:relative;z-index:2}
+@media(max-width:860px){.hero-inner{grid-template-columns:1fr;text-align:center}.hero .cta-row{justify-content:center}.hero p{margin-left:auto;margin-right:auto}}
+/* The characters are drawn straight onto the page, so they get a wash to sit
+   against - lifted to the card tone in the middle and faded out before any edge.
+   Same trick the game's own landing page uses. */
+.hero-art{background:radial-gradient(closest-side,rgba(73,85,104,.55),transparent 72%)}
+.hero-art img{display:block;width:100%;height:auto}
+h1{font-family:Poppins,sans-serif;font-weight:900;font-size:clamp(2.1rem,5vw,3.3rem);line-height:1.12;margin:22px 0 0}
+h1 .glow{color:var(--mango)}
+.hero-sub{margin-top:20px;color:var(--muted);max-width:60ch;font-size:1.08rem}
+.hero-trust{margin-top:28px;font-family:'JetBrains Mono',monospace;font-size:.72rem;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--muted);max-width:none}
+
+/* ---------- the night card, overlapping the hero ---------- */
+.nightcard-wrap{max-width:1040px;margin:-72px auto 0;padding:0 22px;position:relative;z-index:5}
+.nightcard{position:relative;border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,var(--night),#2b3441);
+  box-shadow:0 0 0 1px rgba(245,165,36,.07),0 24px 60px rgba(0,0,0,.5);padding:30px 34px 26px}
+.nightcard .beat{position:absolute;top:-20px;right:26px;border:1px solid var(--line);border-radius:14px;background:var(--card);
+  padding:8px 18px;font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.nightcard .beat b{color:var(--mango);font-weight:700}
+.nightcard ol{list-style:none}
+.nightcard li{display:flex;align-items:baseline;gap:16px;padding:14px 0;border-bottom:1px solid rgba(60,71,87,.7)}
+.nightcard li:last-child{border-bottom:0}
+.nightcard .n{font-family:'JetBrains Mono',monospace;color:var(--muted);font-size:.85rem;min-width:1.1em}
+.nightcard .word{font-family:Poppins,sans-serif;font-weight:800;font-size:clamp(1.02rem,2.4vw,1.42rem);color:var(--mango-light);flex:1}
+.badge{font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+  border:1px solid var(--line);border-radius:999px;padding:3px 10px;white-space:nowrap}
+@media(max-width:560px){.nightcard{padding:28px 20px 22px}.nightcard .beat{right:16px}}
+
+/* ---------- about ---------- */
+.about-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:46px;align-items:center}
+@media(max-width:820px){.about-grid{grid-template-columns:1fr}}
+.about-text p+p{margin-top:16px}
+.profile-card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:34px 30px;text-align:center;box-shadow:var(--lift)}
+.avatar{width:132px;height:132px;border-radius:50%;margin:0 auto 20px;position:relative;overflow:hidden;
+  border:2px solid rgba(245,165,36,.45);box-shadow:0 0 28px rgba(245,165,36,.18);
+  background:radial-gradient(circle at 50% 34%,rgba(245,165,36,.22) 0%,transparent 62%),linear-gradient(145deg,#3a4453,#232b36)}
+.avatar img{width:100%;height:100%;object-fit:cover;display:block;position:relative;z-index:2}
+.avatar .monogram{position:absolute;inset:0;display:grid;place-items:center;z-index:1;
+  font-family:Poppins,sans-serif;font-weight:900;font-size:2.5rem;color:var(--mango)}
+/* The photo is a transparent cutout, so the monogram would show through it.
+   Hide it whenever the image is present; onerror removes the image and brings it back. */
+.avatar img+.monogram{display:none}
+.profile-card .pname{font-family:Poppins,sans-serif;font-weight:800;font-size:1.15rem}
+.profile-card .prole{color:var(--mango);font-size:.9rem;margin-top:4px}
+.profile-card .ploc{color:var(--muted);font-size:.85rem;margin-top:2px}
+.pfacts{list-style:none;margin-top:22px;padding-top:20px;border-top:1px solid var(--line);text-align:left;display:grid;gap:12px}
+.pfacts li{font-size:.86rem;color:var(--muted)}
+.pfacts b{display:block;font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--mango);margin-bottom:2px;font-weight:700}
+
+/* ---------- columns ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:44px}
+@media(max-width:820px){.cols{grid-template-columns:1fr}}
+.cols p+p{margin-top:16px}
+.stack{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}
+.stack span{font-family:'JetBrains Mono',monospace;font-size:.72rem;border:1px solid var(--line);border-radius:8px;padding:5px 10px;color:var(--muted)}
+
+/* ---------- figures ---------- */
+.figure{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--card);
+  transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease}
+.figure:hover{transform:translateY(-3px);border-color:rgba(245,165,36,.42);box-shadow:0 16px 38px rgba(0,0,0,.48)}
+.figure img{width:100%;height:auto;display:block;border-bottom:1px solid var(--line)}
+.figure figcaption{padding:16px 20px;color:var(--muted);font-size:.88rem;max-width:none}
+.figure figcaption b{color:var(--ink);font-weight:600}
+.shots{display:grid;gap:26px}
+.shots-2{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+@media(max-width:820px){.shots-2{grid-template-columns:1fr}}
+/* The diagram is drawn on white. It gets its own light surface and nothing else
+   does - the caption stays on the card tone, or it would be light on light. */
+.arch-figure{margin-top:36px}
+.arch-figure img{background:#f4f2ee;padding:26px}
+.figure a{display:block;text-decoration:none}
+
+/* ---------- problem cards ---------- */
+.problems{display:grid;gap:18px}
+.problem{border:1px solid var(--line);border-left:3px solid var(--mango);border-radius:0 14px 14px 0;background:var(--card);padding:24px 26px}
+.problem:nth-child(2){border-left-color:var(--premium)}
+.problem:nth-child(3){border-left-color:var(--leaf)}
+.problem h3{margin-bottom:8px}
+.problem p{color:var(--muted);font-size:.94rem;max-width:none}
+.problem p+p{margin-top:10px}
+.problem code{font-family:'JetBrains Mono',monospace;font-size:.82rem;color:var(--mango-light);background:var(--mango-soft);border-radius:5px;padding:1px 6px}
+
+/* ---------- metrics ---------- */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px}
+.metric{border:1px solid var(--line);border-radius:14px;background:var(--card);padding:22px;
+  transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease}
+.metric:hover{transform:translateY(-3px);border-color:rgba(245,165,36,.4);box-shadow:0 14px 30px rgba(0,0,0,.42)}
+.metric b{display:block;font-family:Poppins,sans-serif;font-weight:900;font-size:1.75rem;color:var(--mango)}
+.metric.leaf b{color:#6fc98a}
+.metric.purple b{color:var(--premium)}
+.metric.out b{color:var(--out)}
+.metric small{color:var(--muted);font-size:.82rem}
+.quotes{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:26px}
+@media(max-width:820px){.quotes{grid-template-columns:1fr}}
+.quote{border:1px solid var(--line);border-radius:14px;background:var(--card);padding:22px;font-size:.92rem;color:var(--muted)}
+.quote b{color:var(--ink);font-weight:600}
+.quote p{max-width:none}
+
+/* ---------- deliverables ---------- */
+.deliv{display:grid;gap:14px}
+.deliv a.item{display:flex;justify-content:space-between;align-items:center;gap:18px;text-decoration:none;
+  border:1px solid var(--line);border-radius:14px;background:var(--card);padding:20px 22px;color:var(--ink);
+  transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease}
+.deliv a.item:hover{transform:translateY(-3px);border-color:var(--mango);box-shadow:0 14px 30px rgba(0,0,0,.42)}
+.deliv .t{font-family:Poppins,sans-serif;font-weight:600}
+.deliv .d{color:var(--muted);font-size:.86rem;margin-top:2px;max-width:none}
+.deliv .go{font-family:'JetBrains Mono',monospace;color:var(--mango);font-size:.8rem;white-space:nowrap}
+.note{border-left:3px solid var(--mango-deep);padding:12px 18px;background:rgba(232,118,27,.07);border-radius:0 10px 10px 0;
+  font-size:.9rem;color:var(--muted);margin-top:20px;max-width:none}
+
+/* ---------- contact + footer ---------- */
+.contact-inner{text-align:center}
+.contact-inner p{margin:0 auto}
+.contact-inner .cta-row{justify-content:center}
+footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--muted);font-size:.9rem}
+footer .links{display:flex;gap:20px;flex-wrap:wrap;margin-top:10px}
+
+@media (prefers-reduced-motion: no-preference){
+  .hero-inner{animation:rise .6s ease-out both}
+  .nightcard{animation:rise .6s .12s ease-out both}
+  @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+}
+@media (prefers-reduced-motion: reduce){
+  *{transition:none !important;animation:none !important}
+}
+</style>
+</head>
+<body>
+
+<nav class="topnav" aria-label="Main">
+  <div class="wrap topbar">
+    <a class="logo" href="#top">MANGO <span>MAFIA</span></a>
+    <div class="navlinks">
+      <a href="#about">About</a><a href="#case">Case study</a><a href="#action">In action</a><a href="#problems">Engineering</a><a href="#results">Results</a><a href="#contact">Contact</a>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="hero-art">
+        <img src="assets/showdown.webp" alt="A Mafia mango in a fedora and a Police Officer mango pointing at each other" width="900" height="900">
+      </div>
+      <div>
+        <span class="pill">Web developer &middot; Educator &middot; Seoul</span>
+        <h1>I built a classroom game where the <span class="glow">app is the moderator.</span></h1>
+        <p class="hero-sub">Mango Mafia is Mafia for an ESL classroom. The teacher runs it off one projector, the students have no devices, and the app holds every secret in the game - on a screen all twenty of them are looking at. That last part is the whole engineering problem.</p>
+        <div class="cta-row">
+          <a class="btn primary" href="#action">See it in action</a>
+          <a class="btn" href="#case">Read the case study</a>
+        </div>
+        <p class="hero-trust">459 tests &middot; 4 to 20 players &middot; No backend during a live game</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="nightcard-wrap">
+    <div class="nightcard" role="group" aria-label="Project highlights, styled as the game's night screen">
+      <div class="beat"><b>Night 1</b> &middot; Turn 1 of 3</div>
+      <ol>
+        <li><span class="n">1</span><span class="word">The screen is public</span><span class="badge">Core constraint</span></li>
+        <li><span class="n">2</span><span class="word">459 tests across 38 files</span><span class="badge">Leak audits included</span></li>
+        <li><span class="n">3</span><span class="word">15 roles, 42 character files</span><span class="badge">Art pipeline</span></li>
+        <li><span class="n">4</span><span class="word">Rebuilt off black for a projector</span><span class="badge">Found in a real room</span></li>
+        <li><span class="n">5</span><span class="word">Zero network calls mid-lesson</span><span class="badge">By design</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <section id="about">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="section-label">About</p>
+        <h2>A teacher who builds the tools his classroom needs</h2>
+      </div>
+      <div class="about-grid">
+        <div class="about-text">
+          <p>I teach English in Seoul and I write the software I wish existed at the front of the room. Mango Mafia is the third game in a suite for hagwons and academies, aimed at classes of four to twenty students, roughly seven to sixteen years old.</p>
+          <p>The brief was narrow and unforgiving: no student devices, one shared screen, a teacher who is often working in their second language, and a game whose entire appeal depends on hidden information. Everything interesting about this project comes from holding those four things at once.</p>
+          <p>I designed it, built it, drew the pipeline for the art, wrote the tests, and put it in front of a real teacher and a real projector - both of which sent work back.</p>
+        </div>
+        <aside class="profile-card">
+          <div class="avatar">
+            <img src="assets/headshot.png" alt="Jacobus Barnard" width="400" height="306" onerror="this.remove()">
+            <span class="monogram" aria-hidden="true">JB</span>
+          </div>
+          <div class="pname">Jacobus Barnard</div>
+          <div class="prole">Web developer &amp; educator</div>
+          <div class="ploc">Seoul, South Korea</div>
+          <ul class="pfacts">
+            <li><b>Focus</b>Classroom-first edtech that works on a projector</li>
+            <li><b>Core stack</b>React, TypeScript, Next.js, Tailwind, Vitest</li>
+            <li><b>Also built</b>59 Seconds, a live ESL speaking game with paying customers</li>
+          </ul>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section id="case" class="alt">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="section-label">Case study</p>
+        <h2>Mafia, for a room with one screen and no phones</h2>
+        <p class="section-intro">Every ESL teacher already knows Mafia works - students argue, accuse and defend themselves in English without noticing they are practising. What stops it is the bookkeeping.</p>
+      </div>
+      <div class="cols">
+        <div>
+          <p><b>The problem.</b> Running Mafia by hand means remembering who is what, who acted on whom, and what to say next, while twenty children wait. Teachers drop it after one messy attempt. The obvious digital fix - give every student a phone - kills the part that makes it work, which is a room full of people looking at each other.</p>
+          <p><b>The idea.</b> Keep the students device-free and make the app the moderator. It deals the roles, calls each one in turn, resolves the night, counts the votes, and prints the exact sentence the teacher should say next. The teacher runs the room; the app runs the rules.</p>
+          <p><b>My role.</b> All of it: game design, the resolution engine, every screen, the character art pipeline, the test suite, the classroom trials and the changes that came back from them.</p>
+        </div>
+        <div>
+          <p><b>How it is built.</b> Next.js on the App Router with React 19 and Tailwind v4, deployed on Vercel. The entire live session is one <code>useReducer</code> in the browser tab - roster, roles, night actions, votes and phase. There is no server-side session, no realtime, no student clients and no database call during a lesson, because a game that pauses on hagwon wifi is a game a teacher never opens again.</p>
+          <p>All the rules live in pure functions under a resolution engine that never names a role. It iterates six data lists - attackers, protections, death triggers, investigation modifiers, once-per-game powers and target restrictions - so a new role is a new registry entry, not a change to the engine.</p>
+          <div class="stack" aria-label="Technology stack">
+            <span>Next.js 16</span><span>React 19</span><span>TypeScript</span><span>Tailwind v4</span><span>Vitest</span><span>Vercel</span><span>sharp</span><span>Playwright</span><span>Git / GitHub</span>
+          </div>
+        </div>
+      </div>
+
+      <figure class="figure arch-figure">
+        <a href="assets/architecture.webp" target="_blank" rel="noopener" title="Open the full-size image">
+          <img src="assets/architecture.webp" alt="Architecture diagram: a teacher laptop drives a projector or TV; Vercel serves the game engine, which runs in the browser, and the static character art; Supabase holds roles and accounts and Paddle handles subscription checkout, sending payment status to Supabase." width="1600" height="1073" loading="lazy">
+        </a>
+        <figcaption><b>The architecture, and the honest version of it.</b> Everything above the line is shipped: the engine runs entirely in the browser off static files, which is why a lesson never waits on a network. Supabase and Paddle are the next phase - accounts and the subscription this game will share with its two sibling products. No payment code exists in this repository by design; checkout belongs to the platform, not to the game.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="action">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="section-label">See it in action</p>
+        <h2>A full game, from an empty roster to a winner</h2>
+        <p class="section-intro">Captured at 1920x1080, which is the only size that matters - this runs on a projector and gets read from the back row.</p>
+      </div>
+      <div class="shots">
+        <figure class="figure">
+          <a href="assets/home-hero.webp" target="_blank" rel="noopener" title="Open the full-size image">
+            <img src="assets/home-hero.webp" alt="The Mango Mafia landing page: the title, a Mafia mango and a Police Officer mango pointing at each other, a Start a game button, and a row of the five free characters." width="1600" height="900" loading="lazy">
+          </a>
+          <figcaption><b>The front door.</b> One button. The free roles are named and drawn on the first screen, and the premium eleven sit under them - so a teacher knows what they have before they have an account, and the upsell is a row on a landing page rather than anything that can appear during a lesson.</figcaption>
+        </figure>
+        <div class="shots-2">
+          <figure class="figure">
+            <a href="assets/role-config.webp" target="_blank" rel="noopener" title="Open the full-size image">
+              <img src="assets/role-config.webp" alt="The role setup screen: cards for Mafia, Doctor, Police Officer and Citizen with plus and minus counters, showing 2 Mafia, 1 Doctor, 1 Police Officer and 4 Citizens for 8 players." width="1600" height="900" loading="lazy">
+            </a>
+            <figcaption><b>Setup that cannot produce a broken game.</b> Citizens are never edited - they are the remainder, so the roles always add up to the class by construction. The balance guardrails are enforced twice: the button disables, and the reducer refuses.</figcaption>
+          </figure>
+          <figure class="figure">
+            <a href="assets/role-reveal.webp" target="_blank" rel="noopener" title="Open the full-size image">
+              <img src="assets/role-reveal.webp" alt="The role assignment screen showing a Police Officer character, the role name at 100 pixels, and the line 'Sora, this is you' with 'Everybody else, keep your eyes closed' underneath." width="1600" height="900" loading="lazy">
+            </a>
+            <figcaption><b>The one deliberate exposure.</b> Every other screen is built so a living player's role cannot reach the projector. Here it is the point, so it is one card with nothing else to read and the biggest thing under it is the button that clears it.</figcaption>
+          </figure>
+        </div>
+        <figure class="figure">
+          <a href="assets/night-mafia-picked.webp" target="_blank" rel="noopener" title="Open the full-size image">
+            <img src="assets/night-mafia-picked.webp" alt="The night screen: 'Mafia, wake up. Who do you want to remove? Point at a player.' with eight identical player cards and a Back one turn button." width="1600" height="900" loading="lazy">
+          </a>
+          <figcaption><b>The night, where every pixel is a decision.</b> Every card is the same neutral character. The advance button is always enabled, because a button that waited for a choice would mark the turns where a role is dead. The faint outline on the first card is the only feedback a click leaves, and it is structurally unable to survive into the next turn - the Doctor is awake for that one.</figcaption>
+        </figure>
+        <div class="shots-2">
+          <figure class="figure">
+            <a href="assets/morning-suspense.webp" target="_blank" rel="noopener" title="Open the full-size image">
+              <img src="assets/morning-suspense.webp" alt="A full screen reading 'Somebody was removed last night' with two buttons: Show us who, and Drumroll please." width="1600" height="900" loading="lazy">
+            </a>
+            <figcaption><b>The morning, in two steps.</b> The screen says somebody is gone and refuses to say who until the teacher asks. A quiet night skips both steps - building suspense towards "actually, nobody" is a joke you cannot play on a class twice a lesson.</figcaption>
+          </figure>
+          <figure class="figure">
+            <a href="assets/morning-reveal.webp" target="_blank" rel="noopener" title="Open the full-size image">
+              <img src="assets/morning-reveal.webp" alt="The morning reveal splash: the name Minji shouted at the top, the character in full colour, and the role Citizen underneath." width="1600" height="900" loading="lazy">
+            </a>
+            <figcaption><b>Step two.</b> Name, character, role - and the role obeys the same reveal setting every card obeys, so a teacher who plays with roles hidden gets a neutral mango here instead. The optional drumroll before it is a CSS animation with synthesised sound: nothing to download at the payoff moment.</figcaption>
+          </figure>
+        </div>
+        <div class="shots-2">
+          <figure class="figure">
+            <a href="assets/discussion.webp" target="_blank" rel="noopener" title="Open the full-size image">
+              <img src="assets/discussion.webp" alt="The discussion screen on a light background: a large 1:00 clock with plus, minus and mute buttons, the eliminated player's card marked OUT, and a Go to the vote button." width="1600" height="900" loading="lazy">
+            </a>
+            <figcaption><b>Day is a different room from night.</b> Warm surface, sun instead of moon, 6.5:1 apart so a teacher glancing up knows which half of the round they are in without reading. The clock itself is the control - click the number and type "90" or "1:30".</figcaption>
+          </figure>
+          <figure class="figure">
+            <a href="assets/vote.webp" target="_blank" rel="noopener" title="Open the full-size image">
+              <img src="assets/vote.webp" alt="The vote screen: eight cards with vote tallies underneath, one showing 5 and another 2, with Skip the vote, Undo last vote and Close the vote buttons." width="1600" height="900" loading="lazy">
+            </a>
+            <figcaption><b>The vote is public, so the tally is too.</b> Counts sit under the cards where the whole room can check the teacher's arithmetic. One undo control at the bottom rather than a minus button per card - the second is a misclick nobody notices until the count is wrong.</figcaption>
+          </figure>
+        </div>
+        <figure class="figure">
+          <a href="assets/win-splash.webp" target="_blank" rel="noopener" title="Open the full-size image">
+            <img src="assets/win-splash.webp" alt="The win screen: TOWN WINS! shouted in mango across the top, with five celebrating mango characters underneath and a See everybody's role button." width="1600" height="900" loading="lazy">
+          </a>
+          <figcaption><b>The ending is a splash, not a page.</b> Everybody's role is one button away rather than one scroll away, because at this moment the whole class is watching and the teacher is standing at the front, not at the trackpad. Both halves have to fit without scrolling, and a test enforces that at eight players and at twenty.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section id="problems" class="alt">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="section-label">Engineering</p>
+        <h2>Three problems worth writing down</h2>
+        <p class="section-intro">None of these are Mafia problems. They are what happens when the interface is shared by the person operating it and the people it is keeping secrets from.</p>
+      </div>
+      <div class="problems">
+        <div class="problem">
+          <h3>1. The screen is public, so "what may be drawn" is a value, not an if-statement</h3>
+          <p>When the teacher clicks a card to register the Mafia's target, nothing may persist visibly - no highlight, no checkmark, no colour change. Even a prompt like "waiting for Mafia (2 remaining)" leaks: it tells the room how many Mafia are still alive.</p>
+          <p>Scattering that rule through JSX would guarantee losing it. Instead, pure functions - <code>playerCardView</code>, <code>nightView</code> - decide what reaches the screen, and the components draw whatever they are handed and ask no questions. That makes "can the class see this?" a value a test can hold. The leak audits play two games that differ only in hidden state - Doctor alive or dead, target chosen or not, self-save spent or not - and require the rendered output to come out identical, turn for turn.</p>
+          <p>The subtle one: a focus ring parks itself on the last button clicked and stays there, which is a persistent "this player was chosen" marker in everything but name. Cards drop focus after a pointer click but not after a keyboard Enter, so tabbing still works and the mouse leaves nothing behind.</p>
+        </div>
+        <div class="problem">
+          <h3>2. A projector cannot render black, and the whole app was near-black</h3>
+          <p>This one only showed up in a real classroom. A projector renders black as no light, which in a lit room is the same washed-out grey as the wall - so the Mafia mango in his black suit on a near-black background arrived as one flat shape. The best art in the app was invisible in the room it was built for.</p>
+          <p>Every surface moved off black, and the ink now follows the surface: three utility classes redeclare the ink and accent tokens, and Tailwind compiles every <code>text-ink/70</code> into a colour-mix over the token, so a whole page could go light without touching 150 class names. <code>palette.test.ts</code> reads the stylesheet, checks every ink and surface pair against 4.5:1, checks every character against the darkest tone sampled from the art, and fails if anything creeps back towards black or white.</p>
+        </div>
+        <div class="problem">
+          <h3>3. A class in progress is sacred, which rules out the obvious fixes</h3>
+          <p>No modals, no countdowns, no upsell that can appear mid-lesson. That constraint removes the usual answer to most usability problems, and the interesting cases are where it collides with the public screen.</p>
+          <p>A teacher who forgets to click the Mafia's target loses the choice silently. The obvious fix - warn them - is exactly the tell the always-enabled button exists to remove, because the warning would only ever appear on turns where nobody acted. So the control is unconditional: a "Back one turn" button on every beat of the night, which keeps recorded choices so pointing again replaces a pick, and deliberately does not restore a stale investigation result.</p>
+          <p>The same reasoning ended a bug report. On the Police Officer's turn, once the officer is out, clicking a card produces nothing at all - which reads as broken. It is correct: any visible difference on that turn would tell the class the officer is gone, and they would work out who from who went out. A test pins both halves so neither can be "fixed" without the other being noticed.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="results">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="section-label">Results</p>
+        <h2>Measured, not claimed</h2>
+        <p class="section-intro">Every number below comes from a command that can be run again.</p>
+      </div>
+      <div class="metrics">
+        <div class="metric"><b>459</b><small>Tests passing across 38 files</small></div>
+        <div class="metric leaf"><b>7</b><small>Full games played through the engine inside the suite</small></div>
+        <div class="metric purple"><b>15</b><small>Roles designed - 4 shipped free, 11 drawn and specified</small></div>
+        <div class="metric"><b>42</b><small>Character files, 4x upscaled, checked by an automated audit</small></div>
+        <div class="metric leaf"><b>0</b><small>Network calls during a live game</small></div>
+        <div class="metric out"><b>4</b><small>Rounds of changes back from real classroom playthroughs</small></div>
+      </div>
+      <div class="quotes">
+        <div class="quote"><p><b>What the tests caught.</b> The leak audits are the load-bearing ones: run two games differing only in what is hidden, and require identical screens. An earlier version of them passed against a broken reducer because the fixtures were built in the wrong order - the sort of green that is worse than red. An art audit reads the folder and has twice caught a delivery the app could not ask for, including one batch that silently dropped every neutral character.</p></div>
+        <div class="quote"><p><b>What only a real room caught.</b> Driving a full game in a browser at 1080p found two things no static test could see: an OUT badge painted over by the art slot below it, and a name wrapping across two lines on the reveal splash. The projector found the palette. A teacher found that the setup screen had a label which read like a button and did nothing. None of those are visible from a passing test suite.</p></div>
+        <div class="quote"><p><b>An investigation that ended in "no fault found".</b> A playthrough reported that the roles were not randomising - the same class got the same roles twice. I checked the shuffle, the deal, the reducer, and the reset-and-redeal path, then ran 12,000 deals: every seat drew Citizen 50%, Mafia 25%, Doctor and Police 12.5%, which is the textbook answer for eight players. The deal was correct. Half a class of eight are Citizens, so "we got the same roles again" is what correct randomness sounds like from the back of a room. The finding is written down so nobody spends a day on it twice.</p></div>
+        <div class="quote"><p><b>What is still open, honestly.</b> The character art carries a black matte - a near-black rim that was free on a black background and is a faint halo on the new lighter ones. It is currently hidden by the panel tones rather than corrected, because the fix cannot tell a black matte from a legitimately black suit and needs an artist's eye before 42 binaries get rewritten. It is documented in the repository rather than quietly left.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact" class="alt">
+    <div class="wrap contact-inner">
+      <div class="section-head">
+        <p class="section-label">Contact</p>
+        <h2>Get in touch</h2>
+      </div>
+      <p>I am a teacher and developer in Seoul building classroom-first edtech. If you would like to talk about Mango Mafia, about 59 Seconds, or about working together:</p>
+      <div class="cta-row">
+        <a class="btn primary" href="mailto:jaco.barnard1@gmail.com">Email me</a>
+        <a class="btn" href="https://github.com/JarFis-ai" rel="noopener">GitHub</a>
+        <a class="btn" href="https://jarfis-ai.github.io/" rel="noopener">59 Seconds case study</a>
+      </div>
+      <p class="note">The source repository is private. Mango Mafia is an unreleased commercial product that will sit behind a subscription alongside two sibling games, and its character art is licensed content. Code excerpts and a walkthrough are available on request.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>&copy; 2026 Jacobus Barnard &middot; Mango Mafia</div>
+    <div class="links">
+      <a href="https://jarfis-ai.github.io/" rel="noopener">59 Seconds</a>
+      <a href="https://github.com/JarFis-ai" rel="noopener">GitHub</a>
+      <a href="mailto:jaco.barnard1@gmail.com">Email</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
