@@ -63,5 +63,4 @@ network call during a lesson.
 ---
 
 Built by [Jacobus Barnard](https://github.com/JarFis-ai), a teacher and developer in
-Seoul. Also: [59 Seconds](https://jarfis-ai.github.io/), a live ESL speaking game with
-paying customers.
+Seoul. Also: [59 Seconds](https://jarfis-ai.github.io/), a live ESL speaking game.
